@@ -50,7 +50,7 @@ HEADIR     :=./externals/REFPROP-headers
 LIBDIR     :=./fortran
 FILDIR     :=./files
 SRCDIR     :=./src
-BINDIR     :=./bin
+BINDIR     :=./lib
 MATDIR     :=./matlab
 
 ifeq ($(USERNAME),root)
@@ -110,20 +110,24 @@ ifeq ($(UNAME), Linux)
   LIBRARY   =lib$(THENAME)
   DYNAMICLIBRARYEXTENSION =.so
   LIBFLAGS                =-rdynamic -lc -shared -Wl,-soname,$(LIBRARY)$(DYNAMICLIBRARYEXTENSION).$(MAJORVERSION)
+  LINKCOMM         =$(FC) $(LIBFLAGS) $(FFLAGS) -o $(BINDIR)/$(LIBRARY)$(LIBRARYEXTENSION) $(SRCDIR)/$(LIBFILE).o $(LIBOBJECTFILES)
 else ifeq ($(UNAME), Darwin)
   LIBRARY   =lib$(THENAME)
   DYNAMICLIBRARYEXTENSION =.dylib
-  LIBFLAGS                =-dynamiclib -static -o $(BINDIR)/$(LIBRARY)$(DYNAMICLIBRARYEXTENSION) -Wl,-headerpad_max_install_names,-undefined,dynamic_lookup,-compatibility_version,$(MAJORVERSION).$(MINORVERSION),-current_version,$(MAJORVERSION).$(MINORVERSION),-install_name,$(LIBINST)/$(LIBRARY).$(MAJORVERSION).$(MINORVERSION)$(DYNAMICLIBRARYEXTENSION) -lgfortran -lm -lgomp
-  #LIBFLAGS                =-static -o $(BINDIR)/$(LIBRARY)$(LIBRARYEXTENSION) -install_name $(LIBINST)/$(LIBRARY)$(LIBRARYEXTENSION) -current_version $(MAJORVERSION) -compatibility_version $(MAJORVERSION) $(FLINKFLAGS)
-  #LIBFLAGS                =-dynamic -o $(BINDIR)/$(LIBRARY)$(LIBRARYEXTENSION) -install_name $(LIBINST)/$(LIBRARY)$(LIBRARYEXTENSION) -current_version $(MAJORVERSION) -compatibility_version $(MAJORVERSION) $(FLINKFLAGS)
-  #LINKCOMM                = libtool $(LIBFLAGS) $(SRCDIR)/$(LIBFILE).o $(LIBOBJECTFILES)
+  #LIBFLAGS                =-dynamiclib -static -o $(BINDIR)/$(LIBRARY)$(DYNAMICLIBRARYEXTENSION) -Wl,-headerpad_max_install_names,-undefined,dynamic_lookup,-compatibility_version,$(MAJORVERSION).$(MINORVERSION),-current_version,$(MAJORVERSION).$(MINORVERSION),-install_name,$(LIBINST)/$(LIBRARY).$(MAJORVERSION).$(MINORVERSION)$(DYNAMICLIBRARYEXTENSION) -lgfortran -lm -lgomp
+  #DYNAMICLIBRARYEXTENSION =.a
+  #LIBFLAGS                = rvs $(BINDIR)/$(LIBRARY)$(LIBRARYEXTENSION)
+  #LINKCOMM                = ar $(LIBFLAGS) $(SRCDIR)/$(LIBFILE).o $(LIBOBJECTFILES)
+  LIBFLAGS                =-dynamiclib -o $(BINDIR)/$(LIBRARY)$(LIBRARYEXTENSION) -install_name $(LIBINST)/$(LIBRARY)$(LIBRARYEXTENSION) -current_version $(MAJORVERSION) -compatibility_version $(MAJORVERSION) $(FLINKFLAGS)
+  LINKCOMM                = gfortran $(LIBFLAGS) $(SRCDIR)/$(LIBFILE).o $(LIBOBJECTFILES)
 else 
   LIBRARY   =$(THENAME)
   DYNAMICLIBRARYEXTENSION =.dll
   LIBFLAGS                =-shared -Wl,-soname,$(LIBRARY)$(DYNAMICLIBRARYEXTENSION).$(MAJORVERSION)
+  LINKCOMM         =$(FC) $(LIBFLAGS) $(FFLAGS) -o $(BINDIR)/$(LIBRARY)$(LIBRARYEXTENSION) $(SRCDIR)/$(LIBFILE).o $(LIBOBJECTFILES)
 endif
 LIBRARYEXTENSION =$(DYNAMICLIBRARYEXTENSION)
-LINKCOMM         =$(FC) $(LIBFLAGS) $(FFLAGS) -o $(BINDIR)/$(LIBRARY)$(LIBRARYEXTENSION) $(SRCDIR)/$(LIBFILE).o $(LIBOBJECTFILES)
+#LINKCOMM         =$(FC) $(LIBFLAGS) $(FFLAGS) -o $(BINDIR)/$(LIBRARY)$(LIBRARYEXTENSION) $(SRCDIR)/$(LIBFILE).o $(LIBOBJECTFILES)
 HEADEREXTENSION  =.h
 HEADERFILE       =$(THENAME)_lib$(HEADEREXTENSION)
 SRCHEADERFILE    =$(HEADIR)/REFPROP_lib.h
@@ -346,7 +350,7 @@ test              : cpptest fortest
 cpptest           : $(BINDIR)/cpptest
 $(BINDIR)/cpptest : $(HEADIR)/main.cpp
 	$(CPPC) $(CPPFLAGS) -g -o $<.o -c $<
-	$(CPPC) $(CPPFLAGS) -g -o $@ $<.o -L$(BINDIR) $(LIBS) -lgfortran
+	$(CPPC) $(CPPFLAGS) -g -o $@ $<.o -L$(BINDIR) $(LIBS) -lgfortran -Wl,--no-as-needed -ldl
 
 .PHONY            : fortest
 fortest           : $(BINDIR)/fortest
